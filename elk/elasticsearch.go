@@ -44,7 +44,9 @@ func allHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Print request body
 	bodyBuffer, _ := ioutil.ReadAll(r.Body)
-	fmt.Printf("%s\n", bodyBuffer)
+	if nil != bodyBuffer && "" != string(bodyBuffer) {
+		fmt.Printf("%s\n", bodyBuffer)
+	}
 
 	w.Write(prettyprint([]byte("{\"name\":\"tJHIKoQ\",\"cluster_name\":\"go-cluster\",\"cluster_uuid\":\"wRI0fPD1R1iBwKsLN4J5Ww\",\"version\":{\"number\":\"5.6.3\",\"build_hash\":\"1a2f265\",\"build_date\":\"2017-10-06T20:33:39.012Z\",\"build_snapshot\":false,\"lucene_version\":\"6.6.1\"},\"tagline\":\"You Know, for Search\"}\n")))
 }
@@ -105,7 +107,7 @@ func bulkHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write(items.Bytes())
 	w.Write([]byte("]}"))
 
-	log.Printf("bulk_received_count:%d\n", counter)
+	log.Printf("[elk] bulk_received_count: %d\n", counter)
 
 }
 
@@ -180,7 +182,9 @@ func Startup() {
 	mux.HandleFunc("/_bulk", bulkHandler)
 	mux.HandleFunc("/_shutdown", shutdownHandler)
 	mux.HandleFunc("/", allHandler)
-	n := negroni.Classic() // Includes some default middlewares
+	logger := negroni.NewLogger()
+	logger.SetFormat("{{.StartTime}} | {{.Status}} | \t {{.Duration}} | {{.Hostname}} | {{.Method}} {{.Path}}")
+	n := negroni.New(negroni.NewRecovery(), logger, negroni.NewStatic(http.Dir("public")))
 	n.UseHandler(mux)
 
 	log.Println("[elk] config file : ", viper.ConfigFileUsed())

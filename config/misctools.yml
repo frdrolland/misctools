@@ -1,6 +1,6 @@
 {
     "elasticsearch": {
-        "listen": "localhost:9200"
+        "listen": "localhost:19200"
     },
 	"influxdb": {
         "listen": "localhost:18086"

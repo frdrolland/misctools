@@ -32,6 +32,7 @@ var monitCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("Starting elasticsearch mock...")
 		influx.Startup()
+		wg.Add(1)
 		elk.Startup()
 		wg.Add(1)
 		wg.Wait()

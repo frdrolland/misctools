@@ -93,7 +93,10 @@ func writeHandler(w http.ResponseWriter, req *http.Request) {
 		//log.Printf("[index:%s|type:%s] timestamp:%s msgtype:%s\n", header.Index.Index, header.Index.Type, message.Timestamp, message.C.Msg)
 		counter++
 	}
-	log.Printf("bulk_received_count:%d\n", counter)
+
+	w.WriteHeader(http.StatusNoContent) //204
+
+	log.Printf("[influx] bulk_received_count: %d\n", counter)
 }
 
 /**
@@ -167,7 +170,10 @@ func Startup() {
 	mux.HandleFunc("/ping", pingHandler)
 	mux.HandleFunc("/write", writeHandler)
 	mux.HandleFunc("/", allHandler)
-	n := negroni.Classic() // Includes some default middlewares
+	logger := negroni.NewLogger()
+	logger.SetFormat("{{.StartTime}} | {{.Status}} | \t {{.Duration}} | {{.Hostname}} | {{.Method}} {{.Path}}")
+	n := negroni.New(negroni.NewRecovery(), logger, negroni.NewStatic(http.Dir("public")))
+	//	negroni.Classic() // Includes some default middlewares
 	n.UseHandler(mux)
 
 	log.Println("[influxdb] config file : ", viper.ConfigFileUsed())
