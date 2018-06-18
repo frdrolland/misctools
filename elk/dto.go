@@ -62,8 +62,10 @@ type BulkMessage struct {
 	} `json:"s"`
 	Sbe string `json:"sbe"`
 	T   struct {
-		Cap     string `json:"cap"`
-		DOegv   string `json:"d_oegv"`
+		Cap     int64  `json:"cap"`
+		CapTxt  string `json:"cap_txt"`
+		DOegv   int64  `json:"d_oegv"`
+		OegOut  string `json:"oeg_out"`
 		OegvOut string `json:"oegv_out"`
 	} `json:"t"`
 	Tcp struct {

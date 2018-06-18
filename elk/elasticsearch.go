@@ -21,9 +21,10 @@ import (
 )
 
 var (
-	httpAddr string
-	wg       sync.WaitGroup
-	running  bool = false
+	httpAddr   string
+	wg         sync.WaitGroup
+	running    bool = false
+	outputFile *os.File
 )
 
 /*
@@ -84,9 +85,13 @@ func bulkHandler(w http.ResponseWriter, req *http.Request) {
 			log.Println("Error while decoding JSON from bulk header", err)
 		} else {
 			if scanner.Scan() {
-				err := json.Unmarshal(scanner.Bytes(), &message)
+				bytes := scanner.Bytes()
+				outputFile.Write(bytes)
+				outputFile.WriteString("\n")
+				err := json.Unmarshal(bytes, &message)
 				if nil != err {
 					log.Println("Error while decoding JSON from bulk message", err)
+					log.Printf("JSON was: %s\n", scanner.Text())
 				} else {
 					counter++
 					if 1 < counter {
@@ -109,6 +114,7 @@ func bulkHandler(w http.ResponseWriter, req *http.Request) {
 
 	log.Printf("[elk] bulk_received_count: %d\n", counter)
 
+	outputFile.Sync()
 }
 
 /**
@@ -160,12 +166,21 @@ func prettyprint(b []byte) []byte {
 	return out.Bytes()
 }
 
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
 /**
  * Startup "elasticsearch" server to listen on http port
  */
 func Startup() {
 
+	log.Println("[elk] config file : ", viper.ConfigFileUsed())
+
 	httpAddr = viper.GetString("elasticsearch.listen")
+	outputFileName := viper.GetString("elasticsearch.output")
 
 	// Catch signals to cleanup before exiting
 	c := make(chan os.Signal, 2)
@@ -187,7 +202,13 @@ func Startup() {
 	n := negroni.New(negroni.NewRecovery(), logger, negroni.NewStatic(http.Dir("public")))
 	n.UseHandler(mux)
 
-	log.Println("[elk] config file : ", viper.ConfigFileUsed())
+	if 0 < len(outputFileName) {
+		var err error
+		log.Println("[elk] creating file : ", outputFileName)
+		outputFile, err = os.Create(outputFileName)
+		check(err)
+	}
+
 	log.Println("[elk] starting HTTP server on address : ", httpAddr)
 	// Start HTTP server in another thread
 	//http.Handle("/static/", http.FileServer(http.Dir("./static")))

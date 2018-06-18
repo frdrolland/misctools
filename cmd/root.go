@@ -16,7 +16,7 @@ package cmd
 
 import (
 	"fmt"
-	"log"
+	//	"log"
 	"os"
 
 	"github.com/fsnotify/fsnotify"
@@ -90,7 +90,7 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		log.Println("Using config file:", viper.ConfigFileUsed())
+		//log.Println("Using config file:", viper.ConfigFileUsed())
 	}
 
 	viper.WatchConfig()

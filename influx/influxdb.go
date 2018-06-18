@@ -3,6 +3,7 @@ package influx
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -22,6 +23,7 @@ var (
 	running          bool   = false
 	influxdbVersion  string = "1.3.1"
 	kapacitorVersion string = "1.3.1"
+	outputFile       *os.File
 )
 
 /*
@@ -51,6 +53,7 @@ func allHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Print request body
 	bodyBuffer, _ := ioutil.ReadAll(r.Body)
+
 	fmt.Printf("%s\n", bodyBuffer)
 
 	w.Write(prettyprint([]byte("{\"name\":\"tJHIKoQ\",\"cluster_name\":\"go-cluster\",\"cluster_uuid\":\"wRI0fPD1R1iBwKsLN4J5Ww\",\"version\":{\"number\":\"5.6.3\",\"build_hash\":\"1a2f265\",\"build_date\":\"2017-10-06T20:33:39.012Z\",\"build_snapshot\":false,\"lucene_version\":\"6.6.1\"},\"tagline\":\"You Know, for Search\"}\n")))
@@ -84,7 +87,15 @@ func writeHandler(w http.ResponseWriter, req *http.Request) {
 
 	var counter uint64 = 0
 
-	reader := bufio.NewReader(req.Body)
+	//reader := bufio.NewReader(req.Body)
+
+	reader, err := gzip.NewReader(req.Body)
+	if err != nil {
+		panic(err)
+	}
+	// Print request body
+	//bodyBuffer, _ := ioutil.ReadAll(reader)
+
 	scanner := bufio.NewScanner(reader)
 
 	scanner.Split(bufio.ScanLines)
@@ -92,11 +103,15 @@ func writeHandler(w http.ResponseWriter, req *http.Request) {
 	for scanner.Scan() {
 		//log.Printf("[index:%s|type:%s] timestamp:%s msgtype:%s\n", header.Index.Index, header.Index.Type, message.Timestamp, message.C.Msg)
 		counter++
+		outputFile.Write(scanner.Bytes())
+		outputFile.WriteString("\n")
 	}
 
 	w.WriteHeader(http.StatusNoContent) //204
 
 	log.Printf("[influx] bulk_received_count: %d\n", counter)
+
+	outputFile.Sync()
 }
 
 /**
@@ -148,12 +163,21 @@ func prettyprint(b []byte) []byte {
 	return out.Bytes()
 }
 
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
 /**
  * Startup "elasticsearch" server to listen on http port
  */
 func Startup() {
 
+	log.Println("[influxdb] config file : ", viper.ConfigFileUsed())
+
 	httpAddr = viper.GetString("influxdb.listen")
+	outputFileName := viper.GetString("influxdb.output")
 
 	// Catch signals to cleanup before exiting
 	c := make(chan os.Signal, 2)
@@ -176,7 +200,13 @@ func Startup() {
 	//	negroni.Classic() // Includes some default middlewares
 	n.UseHandler(mux)
 
-	log.Println("[influxdb] config file : ", viper.ConfigFileUsed())
+	if 0 < len(outputFileName) {
+		var err error
+		log.Println("[elk] creating file : ", outputFileName)
+		outputFile, err = os.Create(outputFileName)
+		check(err)
+	}
+
 	log.Println("[influxdb] starting HTTP server on address : ", httpAddr)
 	// Start HTTP server in another thread
 	//http.Handle("/static/", http.FileServer(http.Dir("./static")))
