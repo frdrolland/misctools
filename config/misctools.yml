@@ -1,8 +1,12 @@
 {
-    "elasticsearch": {
-        "listen": "localhost:19200"
-    },
-	"influxdb": {
-        "listen": "localhost:18086"
-	}
+  "elasticsearch": {
+#    "listen": "localhost:19200"
+    "listen": "localhost:9200",
+	"output": "_elastic.out"
+  },
+  "influxdb": {
+#    "listen": "localhost:18086"
+    "listen": "localhost:8086",
+	"output": "_influxdb.out"
+  }
 }

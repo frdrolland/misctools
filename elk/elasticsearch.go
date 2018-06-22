@@ -92,6 +92,13 @@ func bulkHandler(w http.ResponseWriter, req *http.Request) {
 				if nil != err {
 					log.Println("Error while decoding JSON from bulk message", err)
 					log.Printf("JSON was: %s\n", scanner.Text())
+
+					// try to print message (but can be partial)
+					if 1 < counter {
+						items.WriteString(",")
+					}
+					items.WriteString(fmt.Sprintf("{\"index\":{\"_index\":\"%s\",\"_type\":\"%s\",\"_id\":\"%s\",\"_version\":1,\"result\":\"created\",\"_shards\":{\"total\":2,\"successful\":0,\"failed\":1},\"created\":true,\"status\":201}}", header.Index.Index, header.Index.Type, uuid.New().String()))
+					log.Printf("[index:%s|type:%s] timestamp:%s msgtype:%s\n", header.Index.Index, header.Index.Type, message.Timestamp, message.C.Msg)
 				} else {
 					counter++
 					if 1 < counter {
