@@ -27,15 +27,6 @@ var (
 	outputFile *os.File
 )
 
-/*
-type logger struct {
-}
-
-func (l logger) Log(record accesslog.LogRecord) {
-	log.Println(record.Method + " " + record.Uri)
-}
-*/
-
 /**
  * All requests.
  */

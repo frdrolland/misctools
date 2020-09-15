@@ -2,11 +2,15 @@
   "elasticsearch": {
 #    "listen": "localhost:19200"
     "listen": "localhost:9200",
-	"output": "_elastic.out"
+	"output": "_elastic.out",
   },
   "influxdb": {
 #    "listen": "localhost:18086"
     "listen": "localhost:8086",
-	"output": "_influxdb.out"
+	"output": "_influxdb.out",
+  },
+  "proxy": {
+    "listen" : "29080",
+    "target.url": "http://Y0007852.tcsgroup.ch:9080",
   }
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 
 	homedir "github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -67,6 +68,10 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.DebugLevel)
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -90,7 +95,21 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		//log.Println("Using config file:", viper.ConfigFileUsed())
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; ignore error if desired
+			log.WithFields(log.Fields{
+				"file": viper.ConfigFileUsed(),
+			}).Warn("no config file found")
+		}
+		log.WithFields(log.Fields{
+			"file": viper.ConfigFileUsed(),
+		}).Info("using config file")
+	} else {
+		// Config file was found but another error was produced
+		log.WithFields(log.Fields{
+			"file": viper.ConfigFileUsed(),
+			"err":  err,
+		}).Error("could not read config file")
 	}
 
 	viper.WatchConfig()
