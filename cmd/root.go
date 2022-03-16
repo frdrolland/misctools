@@ -16,10 +16,15 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	//	"log"
 	"os"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/sirupsen/logrus"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -29,6 +34,7 @@ import (
 var (
 	cfgFile string
 	verbose bool = false
+	wg      sync.WaitGroup
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -51,6 +57,16 @@ func Execute() {
 }
 
 func init() {
+	var log = logrus.New()
+	log.Out = os.Stdout
+
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceColors:     true, // Seems like automatic color detection doesn't work on windows terminals
+		FullTimestamp:   true,
+		TimestampFormat: time.RFC1123Z,
+	})
+	logrus.SetLevel(logrus.InfoLevel)
+
 	cobra.OnInitialize(initConfig)
 
 	// Here you will define your flags and configuration settings.
@@ -90,11 +106,38 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		//log.Println("Using config file:", viper.ConfigFileUsed())
+		logrus.WithFields(logrus.Fields{
+			"File": viper.ConfigFileUsed(),
+		}).Debug("Config file read")
+	} else {
+		logrus.WithFields(logrus.Fields{
+			"File": viper.ConfigFileUsed(),
+		}).Debug("Could not read config file", err)
 	}
 
-	viper.WatchConfig()
+	logLevel := viper.GetString("log.level")
+	switch strings.ToUpper(logLevel) {
+	case logrus.ErrorLevel.String():
+		logrus.SetLevel(logrus.ErrorLevel)
+	case logrus.WarnLevel.String():
+		logrus.SetLevel(logrus.WarnLevel)
+	case logrus.InfoLevel.String():
+		logrus.SetLevel(logrus.InfoLevel)
+	case logrus.DebugLevel.String():
+		logrus.SetLevel(logrus.DebugLevel)
+	case logrus.TraceLevel.String():
+	case "ALL":
+		logrus.SetLevel(logrus.TraceLevel)
+	default:
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+	//viper.SetDefault("verbose", false)
+	//viper.Set("LogFile", LogFile)
+
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		fmt.Println("Config file changed:", e.Name)
+		logrus.WithFields(logrus.Fields{
+			"File": e.Name,
+		}).Debug("Config file changed")
 	})
+	viper.WatchConfig()
 }
