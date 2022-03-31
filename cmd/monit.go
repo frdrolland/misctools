@@ -24,7 +24,7 @@ import (
 )
 
 // monitCmd represents the monit command
-var wg sync.WaitGroup
+var wg2 sync.WaitGroup
 var monitCmd = &cobra.Command{
 	Use:   "monit",
 	Short: "Start a monitoring server to simulate Elasticsearch and/or InfluxDB",
@@ -32,10 +32,10 @@ var monitCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("Starting elasticsearch mock...")
 		influx.Startup()
-		wg.Add(1)
+		wg2.Add(1)
 		elk.Startup()
-		wg.Add(1)
-		wg.Wait()
+		wg2.Add(1)
+		wg2.Wait()
 	},
 }
 
